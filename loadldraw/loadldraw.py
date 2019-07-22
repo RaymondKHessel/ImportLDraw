@@ -1215,6 +1215,7 @@ class LDrawNode:
         self.isSubPart      = isSubPart
         self.isRootNode     = isRootNode
         self.groupNames     = groupNames.copy()
+        self.ldrawname      = filename
 
     def look_at(obj_camera, target, up_vector):
         if isBlender28OrLater:
@@ -1290,6 +1291,7 @@ class LDrawNode:
             # Not in cache, so load file
             self.file = LDrawFile(self.filename, self.isFullFilepath, self.parentFilepath, None, self.isSubPart)
             assert self.file is not None
+            self.ldrawname = self.file.ldrawname
 
             # Add the new file to the cache
             CachedFiles.addToCache(self.filename, self.file)
@@ -1543,6 +1545,7 @@ class LDrawFile:
         self.geometry         = LDrawGeometry()
         self.childNodes       = []
         self.bfcCertified     = None
+        self.ldrawname        = "NONAME"
 
         isGrainySlopeAllowed = not self.isStud
 
@@ -1566,6 +1569,7 @@ class LDrawFile:
 
         #debugPrint("Processing file {0}, isSubPart = {1}, found {2} lines".format(self.filename, self.isSubPart, len(self.lines)))
 
+        self.ldrawname = "NONAME"
         for line in self.lines:
             parameters = line.strip().split()
 
@@ -1578,7 +1582,9 @@ class LDrawFile:
                 parameters.append("")
 
             # Parse LDraw comments (some of which have special significance)
-            if parameters[0] == "0":
+            if parameters[0] == "0":                
+                if self.ldrawname == "NONAME":
+                    self.ldrawname = line
                 if parameters[1] == "!LDRAW_ORG":
                     partType = parameters[2].lower()
                     if 'part' in partType:
@@ -4298,7 +4304,7 @@ def loadFromFile(context, filename, isFullFilepath=True):
 
     # Create Blender objects from the loaded file
     debugPrint("Creating Blender objects")
-    rootOb = createBlenderObjectsFromNode(node, node.matrix, name)
+    rootOb = createBlenderObjectsFromNode(node, node.matrix, node.ldrawname)
 
     scene  = bpy.context.scene
     camera = scene.camera
